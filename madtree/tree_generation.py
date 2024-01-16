@@ -4,6 +4,7 @@ from enum import Enum
 import random, math
 import graphviz
 
+
 class Actions(Enum):
 	BUY = 1
 	STAY = 0
@@ -58,7 +59,7 @@ def generate_deltas(time_horizon: int):
 				case Actions.BUY:
 					price_impact = math.sqrt(2 * quantity / alpha)
 				case Actions.SELL:
-					price_impact = -math.sqrt(2 * -quantity / beta)
+					price_impact = -math.sqrt(-2 * quantity / beta)
 				case Actions.STAY:
 					price_impact = 0
 			return price_impact * 2 / 3
@@ -70,7 +71,7 @@ def generate_deltas(time_horizon: int):
 
 def generate_tree(time_horizon: int, deltas: list[Callable[int, float]]):
 	"""With a time horizon build the market tree"""
-	root = MarketTreeNode(0, 1, 0)
+	root = MarketTreeNode(0, 100, 0)
 	queue = [root]
 
 	while len(queue) > 0:
@@ -115,9 +116,9 @@ def graph_dot(tree: MarketTreeNode, deltas: list[Callable[int, float]]):
 
 		for (action, child) in node.children.items():
 			if child is None: continue
-			queue.append((action, child))
-			graph.node(str(id(child)), label=str(child), style="filled", fillcolor=node_color(child))
+			# graph.node(str(id(child)), label=str(child), style="filled", fillcolor=node_color(child))
 			graph.edge(str(id(node)), str(id(child)), label=str(action.value))
+			queue.append((action, child))
 
 	return graph
 
