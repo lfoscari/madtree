@@ -1,9 +1,7 @@
-import matplotlib.pyplot as plt
+from visualization.tree_visualization import draw_market_tree
 from typing import Callable
 from enum import Enum
 import random, math
-import graphviz
-
 
 class Actions(Enum):
 	BUY = 1
@@ -46,7 +44,7 @@ class MarketTreeNode:
 		return True
 
 	def __str__(self):
-		return f"I: {self.inventory} | C: {self.cash:1.3f} | P: {self.price:1.3f} | D: {self.depth} | R: {self.reward:1.3f}"
+		return f"I {self.inventory}, C {self.cash:1.3f}, P {self.price:1.3f}, D {self.depth}, R {self.reward:1.3f}"
 
 
 def generate_deltas(time_horizon: int):
@@ -84,48 +82,8 @@ def generate_tree(time_horizon: int, deltas: list[Callable[int, float]]):
 
 	return root
 
-def extremes_reward(tree: MarketTreeNode):
-	"""Return the highest and lowest value of the reward among the nodes in the given tree"""
-	queue = [tree]
-	max_reward, min_reward = 0, 0
-
-	while len(queue) > 0:
-		node = queue.pop(0)
-		max_reward = max(max_reward, node.reward)
-		min_reward = min(min_reward, node.reward)
-
-		for child in node.children.values():
-			if child is not None:
-				queue.append(child)
-
-	return max_reward, min_reward
-
-def graph_dot(tree: MarketTreeNode, deltas: list[Callable[int, float]]):
-	"""Represent the tree in graphiz dot"""
-	graph = graphviz.Digraph(comment="Market configurations tree", node_attr={"ordering": "in", "shape": "record"})
-	queue = [(None, tree)]
-
-	max_reward, min_reward = extremes_reward(tree)
-	def node_color(node: MarketTreeNode):
-		normalied_reward = (node.reward - min_reward) / (max_reward - min_reward)
-		return "#" + "".join(f"{int(255 * c):x}" for c in plt.cm.Blues(normalied_reward))
-
-	while len(queue) > 0:
-		_, node = queue.pop(0)
-		graph.node(str(id(node)), label=str(node), style="filled", fillcolor=node_color(node))
-
-		for (action, child) in node.children.items():
-			if child is None: continue
-			# graph.node(str(id(child)), label=str(child), style="filled", fillcolor=node_color(child))
-			graph.edge(str(id(node)), str(id(child)), label=str(action.value))
-			queue.append((action, child))
-
-	return graph
-
 if __name__ == "__main__":
-	time_horizon = 5
+	time_horizon = 10
 	deltas = generate_deltas(time_horizon)
 	tree = generate_tree(time_horizon, deltas)
-
-	dot = graph_dot(tree, deltas)
-	dot.view()
+	draw_market_tree(tree, deltas)
