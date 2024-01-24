@@ -6,4 +6,4 @@ As a safety check, ensure that the reward of each node is equal to the reward ob
 
 ## Install
 
-Remember to install the graphviz library used to visualize the dot file. Run `pip install .`, optionally inside a virtual environment, to install the required dependencies and then run any file in the `madtree` subdirectory directly.
+Remember to install the `graphviz` library used to visualize the dot file. Run `pip install .`, optionally inside a virtual environment, to install the required dependencies and then run the main file in the `madtree` subdirectory to generate a tree with gaussian market densities, otherwise edit said file.
