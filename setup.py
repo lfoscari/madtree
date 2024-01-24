@@ -7,5 +7,5 @@ setup(
    author="Luigi Foscari",
    author_email="luigi.foscari@unimi.it",
    packages=["madtree"],
-   install_requires=["graphviz", "maptplotlib"],
+   install_requires=["graphviz", "matplotlib"],
 )

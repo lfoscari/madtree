@@ -3,3 +3,7 @@ We can rephrase the LOB game as a reinforcement learning problem. The states of 
 The resulting MDP is structured as a tree, where each node has at most 3 children and we want to find a path from the root to a leaf with the highest cumulative reward.
 
 As a safety check, ensure that the reward of each node is equal to the reward obtained by computing the $C_{t-1} + P_t I_{t-1}$, where $C_{t-1}$ and $I_{t-1}$ refer to the values of the father and $P_t$ is the price of the current node.
+
+## Install
+
+Remember to install the graphviz library used to visualize the dot file. Run `pip install .`, optionally inside a virtual environment, to install the required dependencies and then run any file in the `madtree` subdirectory directly.
