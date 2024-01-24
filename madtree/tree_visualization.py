@@ -1,6 +1,8 @@
+from market_types import MarketTreeNode
 import matplotlib.pyplot as plt
 from typing import Callable
 import networkx as nx
+
 
 def convert_to_nx(tree, deltas: list[Callable[int, float]]):
 	"""Represent the tree in graphiz dot"""
@@ -29,6 +31,7 @@ def convert_to_nx(tree, deltas: list[Callable[int, float]]):
 			queue.append((action, child))
 
 	return graph
+
 
 def draw_nx(graph: nx.DiGraph):
 	fig, ax = plt.subplots()
@@ -74,5 +77,7 @@ def draw_nx(graph: nx.DiGraph):
 	fig.canvas.mpl_connect("motion_notify_event", hover)
 	plt.show()
 
+
 def draw_market_tree(tree, deltas: list[Callable[int, float]]):
-	draw_nx(convert_to_nx(tree, deltas))
+	graph = convert_to_nx(tree, deltas)
+	draw_nx(graph)
