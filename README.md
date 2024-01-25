@@ -6,4 +6,13 @@ As a safety check, ensure that the reward of each node is equal to the reward ob
 
 ## Install
 
-Remember to install the `graphviz` library used to visualize the dot file. Run `pip install .`, optionally inside a virtual environment, to install the required dependencies and then run the main file in the `madtree` subdirectory to generate a tree with gaussian market densities, otherwise edit said file.
+Remember to install the `graphviz` library used to visualize the dot file. Run `pip install .`, optionally inside a virtual environment, to install the required dependencies and then run the main file in the `madtree` subdirectory to generate a tree with Gaussian market densities, otherwise, edit said file.
+
+In macOS, after having installed `graphviz` via Brew, if the environment setup fails due to `pygraphviz` try installing it manually with the command
+```bash
+python3 -m pip install \
+	--config-setting="--global-option=build_ext" \
+	--config-setting="--global-option=-I$(brew --prefix graphviz)/include/" \
+	--config-setting="--global-option=-L$(brew --prefix graphviz)/lib/" \
+	pygraphviz
+```

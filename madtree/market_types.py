@@ -16,13 +16,9 @@ class MarketTreeNode:
 		self.depth = depth
 		self.reward = reward
 
-		self.children = {
-			Actions.BUY: None,
-			Actions.STAY: None,
-			Actions.SELL: None
-		}
+		self.children: dict[Actions, MarketTreeNode] = dict()
 
-	def perform(self, action: Actions, delta: Callable[int, float]):
+	def perform(self, action: Actions, delta: Callable[[int], float]):
 		"""Execute an action on the tree and create the corresponding child"""
 		quantity = action.value
 		
@@ -38,7 +34,7 @@ class MarketTreeNode:
 		)
 
 		if self.children[action].inventory < 0 or self.children[action].cash < 0 or self.children[action].price < 0:
-			self.children[action] = None
+			del self.children[action]
 			return False
 
 		return True

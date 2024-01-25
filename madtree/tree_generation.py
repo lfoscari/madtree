@@ -22,7 +22,7 @@ def gaussian_deltas(time_horizon: int):
 	return [delta(distr(), distr()) for _ in range(time_horizon)]
 
 
-def generate_tree(time_horizon: int, deltas: list[Callable[int, float]]):
+def generate_tree(time_horizon: int, deltas: list[Callable[[int], float]]):
 	"""Build the market tree up to the given depth and using the given market densities"""
 	root = MarketTreeNode(0, 100, 0)
 	queue = [root]

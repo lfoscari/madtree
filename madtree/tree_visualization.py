@@ -4,7 +4,7 @@ from typing import Callable
 import networkx as nx
 
 
-def convert_to_nx(tree, deltas: list[Callable[int, float]]):
+def convert_to_nx(tree, deltas: list[Callable[[int], float]]):
 	"""Represent the tree in graphiz dot"""
 	graph = nx.DiGraph()
 	queue = [(None, tree)]
@@ -22,7 +22,6 @@ def convert_to_nx(tree, deltas: list[Callable[int, float]]):
 		)
 
 		for (action, child) in node.children.items():
-			if child is None: continue
 			graph.add_edge(
 				id(node), id(child),
 				action=action.value,
@@ -78,6 +77,6 @@ def draw_nx(graph: nx.DiGraph):
 	plt.show()
 
 
-def draw_market_tree(tree, deltas: list[Callable[int, float]]):
+def draw_market_tree(tree, deltas: list[Callable[[int], float]]):
 	graph = convert_to_nx(tree, deltas)
 	draw_nx(graph)
