@@ -21,6 +21,9 @@ class MarketTreeNode:
 	def perform(self, action: Actions, delta: Callable[[int], float]):
 		"""Execute an action on the tree and create the corresponding child"""
 		quantity = action.value
+
+		self.buy_delta = delta(Actions.BUY.value)
+		self.sell_delta = delta(Actions.SELL.value)
 		
 		if quantity == 1 and self.price > self.cash or quantity == -1 and self.inventory <= 0:
 			return False
