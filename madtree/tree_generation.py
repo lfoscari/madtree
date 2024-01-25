@@ -1,4 +1,4 @@
-from .market_types import Actions, MarketTreeNode
+from market_types import Actions, MarketTreeNode
 from typing import Callable
 import random, math
 
@@ -40,9 +40,9 @@ def deltas_factory(time_horizon: int, densities: Callable[[int], tuple[list[floa
 	return [delta(a, b) for a, b in zip(alphas, betas)]
 
 
-def generate_tree(time_horizon: int, deltas: list[Callable[[int], float]]):
+def generate_tree(time_horizon: int, deltas: list[Callable[[int], float]], inventory = 0, cash = 1, price = 0):
 	"""Build the market tree up to the given depth and using the given market densities"""
-	root = MarketTreeNode(0, 100, 0)
+	root = MarketTreeNode(inventory, cash, price)
 	queue = [root]
 
 	while len(queue) > 0:
@@ -54,10 +54,3 @@ def generate_tree(time_horizon: int, deltas: list[Callable[[int], float]]):
 				queue.append(node.children[action])
 
 	return root
-
-
-def tree(time_horizon = 5, densities: Callable[[int], tuple[list[float], list[float]]] = gaussian_densities):
-	"""Build a tree according to the specifics"""
-	deltas = deltas_factory(time_horizon, densities)
-	tree = generate_tree(time_horizon, deltas)
-	return tree, deltas

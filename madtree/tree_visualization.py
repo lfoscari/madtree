@@ -1,4 +1,4 @@
-from .market_types import MarketTreeNode
+from market_types import MarketTreeNode, Actions
 import matplotlib.pyplot as plt
 from typing import Callable
 from itertools import chain
@@ -56,6 +56,14 @@ def highest_reward_paths(graph: nx.DiGraph):
 	return chain(*(nx.all_simple_paths(graph, root, leaf) for leaf in leaves))
 
 
+def compute_action_distributions(graph: nx.DiGraph, path_edgelist: list[tuple[int, int]]):
+	path_actions = [graph.get_edge_data(u, v)["action"] for (u, v) in path_edgelist]
+	return {
+		action: path_actions.count(action.value) / len(path_actions) 
+		for action in [Actions.BUY, Actions.STAY, Actions.SELL]
+	}
+
+
 def draw_nx(graph: nx.DiGraph):
 	fig, ax = plt.subplots()
 	position = nx.nx_agraph.graphviz_layout(graph, prog="dot")
@@ -74,6 +82,9 @@ def draw_nx(graph: nx.DiGraph):
 		path_edge_actions = nx.get_edge_attributes(graph, "action")
 		nx.draw_networkx_edges(graph, position, ax=ax, edgelist=path_edgelist, edge_color="blue")
 		nx.draw_networkx_edge_labels(graph, position, ax=ax, edge_labels=path_edge_actions)
+
+		action_distributions = compute_action_distributions(graph, path_edgelist)
+		plt.text(0, 0, "Best actions distribution  " + ", ".join(f"{a}: {p}" for (a, p) in action_distributions.items()))
 
 	annot = ax.annotate("", xy=(0,0), xytext=(20, 20), textcoords="offset points", 
 		bbox=dict(fc="w"), arrowprops=dict(arrowstyle="->"))
