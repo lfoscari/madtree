@@ -1,12 +1,12 @@
-from market_types import MarketTreeNode
+from .market_types import MarketTreeNode
 import matplotlib.pyplot as plt
 from typing import Callable
 from itertools import chain
 import networkx as nx
 
 
-def convert_to_nx(tree, deltas: list[Callable[[int], float]]):
-	"""Represent the tree in graphiz dot"""
+def convert_to_nx(tree: MarketTreeNode, deltas: list[Callable[[int], float]]):
+	"""Represent the tree in NetworkX DiGraph"""
 	graph = nx.DiGraph()
 	queue = [(None, tree)]
 
@@ -41,10 +41,7 @@ def highest_reward_paths(graph: nx.DiGraph):
 	leaves = []
 	max_reward = 0
 
-	for node in graph:
-		if graph.in_degree(node) == 0:
-			root = node
-			break
+	root = next(node for node in graph if graph.in_degree(node) == 0)
 
 	for node in graph:
 		if graph.out_degree(node) != 0: continue
@@ -111,6 +108,6 @@ def draw_nx(graph: nx.DiGraph):
 	plt.show()
 
 
-def draw_market_tree(tree, deltas: list[Callable[[int], float]]):
+def draw_market_tree(tree: MarketTreeNode, deltas: list[Callable[[int], float]]):
 	graph = convert_to_nx(tree, deltas)
 	draw_nx(graph)

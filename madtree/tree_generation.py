@@ -1,4 +1,4 @@
-from market_types import Actions, MarketTreeNode
+from .market_types import Actions, MarketTreeNode
 from typing import Callable
 import random, math
 
