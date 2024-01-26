@@ -2,9 +2,10 @@ Alternating densities
 
 I => BUY: 0.000 STAY: 1.000 SELL: 0.000
 The agent cannot buy due to lack of funds, but cannot sell either because it
-would drive the price below zero.
+would drive the price below zero. Realistically if you have stocks of value 0,
+there is no possible action you can take.
 
-C => BUY: 0.441 STAY: 0.559 SELL: 0.000
+C => BUY: 0.497 STAY: 0.496 SELL: 0.007
 Why is the agent not selling? Maybe there needs to be a response from the market
 to incentivize selling.
 

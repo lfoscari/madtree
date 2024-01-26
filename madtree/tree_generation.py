@@ -2,6 +2,38 @@ from market_types import Actions, MarketTreeNode
 from typing import Callable
 import random, math
 
+
+def gaussian_densities(time_horizon: int, mu = 0.2, std = 0.1):
+	"""Generate uniform alphas and betas from the given interval"""
+	distr = lambda: max(random.normalvariate(mu, std), 0.05)
+	alphas = [distr() for _ in range(time_horizon)]
+	betas = [distr() for _ in range(time_horizon)]
+	return alphas, betas
+
+
+def uniform_densities(time_horizon: int, interval = (0.05, 0.5)):
+	"""Generate uniform alphas and betas from the given interval"""
+	distr = lambda: random.uniform(*interval)
+	alphas = [distr() for _ in range(time_horizon)]
+	betas = [distr() for _ in range(time_horizon)]
+	return alphas, betas
+
+
+def constant_densities(time_horizon: int, interval = (0.05, 0.5)):
+	"""Generate constant alphas and betas with two values from the given interval"""
+	distr = lambda: random.uniform(*interval)
+	alpha, beta = distr(), distr()
+	alphas = [alpha for _ in range(time_horizon)]
+	betas = [beta for _ in range(time_horizon)]
+	return alphas, betas
+
+
+def symmetrical_densities(time_horizon: int):
+	"""Generate gaussian alphas and betas which are symmetrical"""
+	alphas, _ = gaussian_densities(time_horizon)
+	return alphas, alphas
+
+
 def alternating_densities(time_horizon: int):
 	"""Generate gaussian alphas and betas, but avoid having a more convenient side two or more times in a row"""
 	alphas, betas = gaussian_densities(time_horizon)
@@ -14,11 +46,19 @@ def alternating_densities(time_horizon: int):
 	return alphas, betas
 
 
-def gaussian_densities(time_horizon: int):
-	distr = lambda: max(random.normalvariate(0.2, 0.1), 0.05)
-	alphas = [distr() for _ in range(time_horizon)]
-	betas = [distr() for _ in range(time_horizon)]
+def lipschitz_densities(time_horizon: int, start: float = 0.3, constant: float = 0.1):
+	"""Generate lipschitz alphas and betas"""
+
+	def lipschitz_gen(x: float):
+		"""Pick a random next value for the lipschitz function"""
+		while True:
+			x = random.uniform(max(x - constant, 0.), x + constant)
+			yield x
+			
+	alphas = [x for _, x in zip(range(time_horizon), lipschitz_gen(start))]
+	betas = [x for _, x in zip(range(time_horizon), lipschitz_gen(start))]
 	return alphas, betas
+
 
 def deltas_factory(time_horizon: int, densities: Callable[[int], tuple[list[float], list[float]]]):
 	"""Returns the functions defining the market density, for now it is just gaussian"""

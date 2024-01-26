@@ -122,3 +122,28 @@ def draw_nx(graph: nx.DiGraph):
 def draw_market_tree(tree: MarketTreeNode, deltas: list[Callable[[int], float]]):
 	graph = convert_to_nx(tree, deltas)
 	draw_nx(graph)
+
+
+def bar_plot(ax, data, colors=None, total_width=0.8, single_width=1, legend=True, labels=None):
+	"""Draws a bar plot with multiple bars per data point."""
+
+	if colors is None:
+		colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
+	n_bars = len(data)
+	bar_width = total_width / n_bars
+	bars = []
+
+	for i, (name, values) in enumerate(data.items()):
+		x_offset = (i - n_bars / 2) * bar_width + bar_width / 2
+
+		for x, y in enumerate(values):
+			bar = ax.bar(x + x_offset, y, width=bar_width * single_width, color=colors[i % len(colors)])
+
+		bars.append(bar[0])
+
+	if legend:
+		ax.legend(bars, data.keys())
+
+	if labels is not None:
+		plt.xticks(range(len(labels)), labels)
