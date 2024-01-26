@@ -18,4 +18,5 @@ if __name__ == "__main__":
 		res_t = {a.name: [v[a] for k, v in res.items()] for a in [Actions.BUY, Actions.STAY, Actions.SELL]}
 		bar_plot(ax, res_t, total_width=.8, single_width=1, labels=res.keys())
 
+		print(density.__name__, "\n", res)
 		plt.savefig(f"results/{density.__name__}.pdf")
