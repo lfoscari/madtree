@@ -1,15 +1,16 @@
 from tree_visualization import convert_to_nx, highest_reward_paths, compute_action_distributions
 from tree_generation import deltas_factory, generate_tree, gaussian_densities, alternating_densities
+
 from market_types import Actions
 from typing import Callable
 import random
 
-def interesting_initializations(amount: int = 1000):
+def interesting_initializations(amount: int = 1_000):
 	"""
 	Build random inputs for all the possible interesting initializations of the tree.
 	I = inventory, C = cash, P = price (e.g. 'IC' means that only inventory and cash are non-zero)
 	"""
-	r = lambda: random.randint(1, 100)
+	r = lambda: random.randint(1, 20)
 
 	I = [(r(), 0, 0) for _ in range(amount)]
 	C = [(0, r(), 0) for _ in range(amount)]

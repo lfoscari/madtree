@@ -1,4 +1,5 @@
 from market_types import MarketTreeNode, Actions
+
 import matplotlib.pyplot as plt
 from typing import Callable
 from itertools import chain
@@ -134,7 +135,9 @@ def draw_market_tree(tree: MarketTreeNode, deltas: list[Callable[[int], float]],
 
 def bar_plot(ax, data, title=None, colors=None, total_width=0.8, single_width=1, legend=True, labels=None):
 	"""Draws a bar plot with multiple bars per data point."""
-	if title is not None: ax.title(title)
+	explanation = "I = inventory, C = cash, P = price\n(e.g. 'IC' means that only inventory and cash are non-zero)"
+	
+	ax.set_title(((title + "\n") or "") + explanation)
 
 	if colors is None:
 		colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
