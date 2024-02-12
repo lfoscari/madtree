@@ -133,7 +133,7 @@ def draw_market_tree(tree: MarketTreeNode, deltas: list[Callable[[int], float]],
 	draw_nx(graph, title)
 
 
-def bar_plot(ax, data, title=None, colors=None, total_width=0.8, single_width=1, legend=True, labels=None):
+def bar_plot(ax, data, errors=None, title=None, colors=None, total_width=0.8, single_width=1, legend=True, labels=None):
 	"""Draws a bar plot with multiple bars per data point."""
 	explanation = "I = inventory, C = cash, P = price\n(e.g. 'IC' means that only inventory and cash are non-zero)"
 	
@@ -148,11 +148,12 @@ def bar_plot(ax, data, title=None, colors=None, total_width=0.8, single_width=1,
 
 	for i, (name, values) in enumerate(data.items()):
 		x_offset = (i - n_bars / 2) * bar_width + bar_width / 2
-
 		for x, y in enumerate(values):
 			bar = ax.bar(x + x_offset, y, width=bar_width * single_width, color=colors[i % len(colors)])
-
+			if errors and errors[name][x] != 0:
+				plt.errorbar(x + x_offset, y, yerr=errors[name][x], color="black", capsize=4)
 		bars.append(bar[0])
+		
 
 	if legend:
 		ax.legend(bars, data.keys())

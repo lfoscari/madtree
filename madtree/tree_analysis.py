@@ -5,7 +5,7 @@ from market_types import Actions
 from typing import Callable
 import random
 
-def interesting_initializations(amount: int = 1_000):
+def nonzero_initializations(amount: int = 1_000):
 	"""
 	Build random inputs for all the possible interesting initializations of the tree.
 	I = inventory, C = cash, P = price (e.g. 'IC' means that only inventory and cash are non-zero)
@@ -35,20 +35,22 @@ def interesting_initializations(amount: int = 1_000):
 def avg_dict(dicts, keys):
 	return {k: sum(d[k] for d in dicts) / len(dicts) for k in keys}
 
-def analize_actions_spread(time_horizon: int = 5, densities: Callable[[int], tuple[list[float], list[float]]] = gaussian_densities):
+def var_dict(dicts, means, keys):
+	return {k: sum((d[k] - means[k]) ** 2 for d in dicts) / len(dicts) for k in keys}
+
+def analize_actions_spread(time_horizon: int = 5, density: Callable[[int], tuple[list[float], list[float]]] = gaussian_densities):
 	"""
-	Using the interesting parameters average the distribution of
-	the moves used in the best paths according to the reward of the leaves.
+	Using the non-zero init parameters compute the distribution of the best moves
+	on the best path reward-wise and extract mean and variance.
 	"""
-	init_arguments = interesting_initializations()
+	deltas = deltas_factory(time_horizon, density)
+	init_arguments = nonzero_initializations()
 
 	for name, arguments in init_arguments.items():
-		deltas = deltas_factory(time_horizon, densities)
 		arg_distr = []
 
 		for arg in arguments:
 			tree = generate_tree(time_horizon, deltas, *arg)
-
 			nx_tree = convert_to_nx(tree, deltas)
 			paths = highest_reward_paths(nx_tree)
 
@@ -56,7 +58,12 @@ def analize_actions_spread(time_horizon: int = 5, densities: Callable[[int], tup
 				edgelist = list(zip(path, path[1:]))
 				arg_distr.append(compute_action_distributions(nx_tree, edgelist))
 
-		arg_results = avg_dict(arg_distr, [Actions.BUY, Actions.STAY, Actions.SELL])
-		init_arguments[name] = arg_results
+		arg_results_mean = avg_dict(arg_distr, [Actions.BUY, Actions.STAY, Actions.SELL])
+		arg_results_var = var_dict(arg_distr, arg_results_mean, [Actions.BUY, Actions.STAY, Actions.SELL])
+
+		init_arguments[name] = {
+			"mean": arg_results_mean,
+			"var": arg_results_var
+		}
 
 	return init_arguments

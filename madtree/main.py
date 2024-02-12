@@ -8,17 +8,19 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import time
 
-def analyze_density(density, time_horizon = 3):
+def analyze_density(density, time_horizon = 2):
 	start = time.time()
 	fig, ax = plt.subplots()
-
 	res = analize_actions_spread(time_horizon, density)
-	res_t = {a.name: [v[a] for k, v in res.items()] for a in [Actions.BUY, Actions.STAY, Actions.SELL]}
-	bar_plot(ax, res_t, density.__name__, total_width=.8, single_width=1, labels=res.keys())
+
+	res_mean_t = {a.name: [v["mean"][a] for k, v in res.items()] for a in [Actions.BUY, Actions.STAY, Actions.SELL]}
+	res_var_t = {a.name: [v["var"][a] for k, v in res.items()] for a in [Actions.BUY, Actions.STAY, Actions.SELL]}
+	
+	bar_plot(ax, res_mean_t, res_var_t, density.__name__, total_width=.8, single_width=1, labels=res.keys())
 
 	plt.savefig(f"results/{density.__name__}.pdf")
 	print(density.__name__, time.time() - start, "s")
-	return density.__name__ + "\n" + str({k: {a.name: p for (a, p) in v.items()} for (k, v) in res.items()}) + "\n"
+	return density.__name__ + "\n" + str(res) + "\n"
 
 if __name__ == "__main__":
 	# density = gaussian_densities
