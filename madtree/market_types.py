@@ -18,29 +18,68 @@ class MarketTreeNode:
 
 		self.children: dict[Actions, MarketTreeNode] = dict()
 
-	def perform(self, action: Actions, delta: Callable[[int], float]):
+	def can_perform(self, action: Actions, delta: Callable[[int], float]) -> bool:
+		"""Should be checked before performing an action"""
+		quantity = action.value
+		delta_action = delta(quantity)
+
+		preconditions = action == Actions.STAY \
+			or (action == Actions.BUY and self.price + delta_action <= self.cash) \
+			or (action == Actions.SELL and self.inventory > 0)
+
+		postconditions = self.inventory + quantity >= 0 \
+			and self.cash - quantity * (self.price + delta_action) >= 0 \
+			and self.price + delta_action >= 0
+		
+		return preconditions and postconditions
+
+	def perform(self, action: Actions, delta: Callable[[int], float]) -> bool:
 		"""Execute an action on the tree and create the corresponding child"""
 		quantity = action.value
 
 		self.buy_delta = delta(Actions.BUY.value)
 		self.sell_delta = delta(Actions.SELL.value)
 		
-		if quantity == 1 and self.price > self.cash or quantity == -1 and self.inventory <= 0:
+		if not self.can_perform(action, delta):
 			return False
 
+		delta_action = delta(quantity)
 		self.children[action] = MarketTreeNode(
 			self.inventory + quantity,
-			self.cash - quantity * (self.price + delta(quantity)),
-			self.price + delta(quantity),
+			self.cash - quantity * (self.price + delta_action),
+			self.price + delta_action,
 			self.depth + 1,
-			self.reward + self.inventory * delta(quantity),
+			self.reward + self.inventory * delta_action,
 		)
 
-		if self.children[action].inventory < 0 or self.children[action].cash < 0 or self.children[action].price < 0:
-			del self.children[action]
-			return False
+		return True
+
+	def check_tree(self, deltas, time_horizon):
+		"""
+			Checks the given tree for consistency, making sure that all the
+			nodes are valid and that no valid nodes are missing.
+		"""
+		queue = [self]
+		
+		while len(queue) > 0:
+			node = queue.pop(0)
+			queue.extend(node.children.values())
+
+			delta = deltas[node.depth]
+			for action in [Actions.BUY, Actions.STAY, Actions.SELL]:
+				if node.can_perform(action, delta) and action not in node.children:
+					print(action, node)
+					return False
 
 		return True
+
+	def print_tree(self):
+		queue = [self]
+		
+		while len(queue) > 0:
+			node = queue.pop(0)
+			print("- " * node.depth + str(node))
+			queue.extend(node.children.values())
 
 	def __str__(self):
 		return f"I {self.inventory}, C {self.cash:1.3f}, P {self.price:1.3f}, D {self.depth}, R {self.reward:1.3f}"

@@ -6,6 +6,51 @@ from itertools import chain
 import networkx as nx
 
 
+def highest_reward_leaf(tree: MarketTreeNode) -> list[MarketTreeNode]:
+	# I should check for multiple leaves with the highest reward, but it's very unlikely
+
+	queue = [tree]
+	max_reward = tree.reward
+	leaves = []
+
+	while len(queue) > 0:
+		node = queue.pop(0)
+		queue.extend(node.children.values())
+
+		if len(node.children) == 0:
+			leaves.append(node)
+			max_reward = max(max_reward, node.reward)
+
+	return next(leaf for leaf in leaves if leaf.reward == max_reward)
+
+
+def path_to_leaf(root: MarketTreeNode, leaf: MarketTreeNode) -> list[MarketTreeNode]:
+	def rec_path(path: list[MarketTreeNode], leaf: MarketTreeNode) -> bool:
+		last_node = path[-1]
+		if last_node == leaf:
+			return True
+
+		for child in last_node.children.values():
+			path.append(child)
+			if rec_path(path, leaf):
+				return True
+			path.pop()
+
+		return False
+
+	path = [root]
+	rec_path(path, leaf)
+	return path
+
+
+def action_path(path: list[MarketTreeNode]) -> list[Actions]:
+	actions = []
+	for depth in range(1, len(path)):
+		parent, node = path[depth - 1], path[depth]
+		action = next(action for action, child in parent.children.items() if child == node)
+		actions.append(action)
+	return actions
+
 def convert_to_nx(tree: MarketTreeNode, deltas: list[Callable[[int], float]]):
 	"""Represent the tree in NetworkX DiGraph"""
 	graph = nx.DiGraph()
@@ -37,24 +82,14 @@ def convert_to_nx(tree: MarketTreeNode, deltas: list[Callable[[int], float]]):
 
 	return graph
 
-def highest_reward_paths(graph: nx.DiGraph):
+
+def nx_highest_reward_paths(graph: nx.DiGraph):
 	"""Find the path from the root to the leaves with the highest reward"""
-	leaves = []
-	max_reward = 0
+	leaves = [node for node in graph if graph.out_degree(node) == 0]
+	max_reward = max(leaves, key=lambda node: graph.nodes[node]["reward"])["reward"]
+	best_leaves = [leaf for leaf in leaves if graph.nodes[node]["reward"] == max_reward]
 
-	root = next(node for node in graph if graph.in_degree(node) == 0)
-
-	for node in graph:
-		if graph.out_degree(node) != 0: continue
-		reward = graph.nodes[node]["reward"]
-
-		if reward > max_reward:
-			leaves = [node]
-			max_reward = reward
-		elif reward == max_reward:
-			leaves.append(node)
-
-	return chain(*(nx.all_simple_paths(graph, root, leaf) for leaf in leaves))
+	return chain(*(nx.all_simple_paths(graph, root, leaf) for leaf in best_leaves))
 
 
 def compute_action_distributions(graph: nx.DiGraph, path_edgelist: list[tuple[int, int]]):
@@ -79,7 +114,7 @@ def draw_nx(graph: nx.DiGraph, title=""):
 	nodes = nx.draw_networkx_nodes(graph, position, ax=ax, cmap=plt.cm.Blues, node_color=list(node_rewards.values()))
 
 	action_distributions = []
-	for path in highest_reward_paths(graph):
+	for path in nx_highest_reward_paths(graph):
 		path_edgelist = list(zip(path, path[1:]))
 		action_distributions.append(compute_action_distributions(graph, path_edgelist))
 
@@ -92,7 +127,7 @@ def draw_nx(graph: nx.DiGraph, title=""):
 		for action in [Actions.BUY, Actions.STAY, Actions.SELL]
 	}
 
-	plt.title(f"{title}\nBest stategy action distribution: " + \
+	plt.title(f"{title if title is not None else ''}\nBest stategy action distribution: " + \
 		', '.join(f'{a.name} {int(p * 100)}%' for (a, p) in avg_action_distribution.items()))
 
 	annot = ax.annotate("", xy=(0,0), xytext=(20, 20), textcoords="offset points", 
