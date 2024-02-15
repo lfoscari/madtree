@@ -20,7 +20,7 @@ def analyze_density(density, time_horizon = 10):
 	bar_plot(ax, res_mean_t, res_var_t, density.__name__, total_width = .8, single_width = 1, labels = res.keys())
 
 	plt.savefig(f"results/{density.__name__}.pdf")
-	print(density.__name__, time.time() - start, "s")
+	print(density.__name__, round(time.time() - start), "s")
 	return { density.__name__: res }
 
 if __name__ == "__main__":
