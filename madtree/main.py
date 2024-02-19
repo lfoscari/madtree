@@ -12,7 +12,7 @@ import json
 def analyze_density(density, time_horizon = 10):
 	start = time.time()
 	fig, ax = plt.subplots()
-	res = analize_actions_spread(time_horizon, density)
+	res = analize_nonzero_actions_spread(time_horizon, density)
 
 	res_mean_t = {a.name: [v["mean"][a.name] for k, v in res.items()] for a in [Actions.BUY, Actions.STAY, Actions.SELL]}
 	res_var_t = {a.name: [v["var"][a.name] for k, v in res.items()] for a in [Actions.BUY, Actions.STAY, Actions.SELL]}

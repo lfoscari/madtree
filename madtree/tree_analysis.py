@@ -3,13 +3,15 @@ from tree_visualization import convert_to_nx, highest_reward_leaf, path_to_leaf,
 from market_types import Actions, MarketTreeNode
 
 from typing import Callable
+import numpy as np
 import random
 
-def nonzero_initializations(amount: int = 10_000):
-	"""
-	Build random inputs for all the possible interesting initializations of the tree.
-	I = inventory, C = cash, P = price (e.g. 'IC' means that only inventory and cash are non-zero)
-	"""
+# # TODO: calcola i parametri così:
+# 	- estrai un prezzo
+# 	- estrai una porzione p in [0, 1]
+# 	- distribuisci un capitale iniziale fisso tra cash e inventario in base al prezzo alla proporzione p.
+
+def nonzero_initializations(amount = 1_000) -> dict(str, list(int)):
 	r = lambda: random.randint(1, 20)
 
 	I = [(r(), 0, 0) for _ in range(amount)]
@@ -32,19 +34,14 @@ def nonzero_initializations(amount: int = 10_000):
 		"ICP": ICP
 	}
 
-def avg_dict(dicts, keys):
-	return {k: sum(d[k] for d in dicts) / len(dicts) for k in keys}
 
-def var_dict(dicts, means, keys):
-	return {k: sum((d[k] - means[k]) ** 2 for d in dicts) / len(dicts) for k in keys}
-
-def analize_actions_spread(time_horizon: int = 5, density: Callable[[int], tuple[list[float], list[float]]] = gaussian_densities):
+def analize_nonzero_actions_spread(time_horizon: int = 5, density: Callable[[int], tuple[list[float], list[float]]] = gaussian_densities) -> dict(str, dict()):
 	"""
 	Using the non-zero init parameters compute the distribution of the best moves
 	on the best path reward-wise and extract mean and variance.
 	"""
 	deltas = deltas_factory(time_horizon, density)
-	init_arguments = nonzero_initializations()
+	init_arguments = initializations()
 	tree = MarketTreeNode(1, 1, 1)
 
 	for name, arguments in init_arguments.items():
@@ -70,6 +67,42 @@ def analize_actions_spread(time_horizon: int = 5, density: Callable[[int], tuple
 		}
 
 	return init_arguments
+
+def proportion_initializations(amount = 100, precision = 50) -> tuple((int, int, float)):
+	"""
+	From a starting capital and across a grid of possible distributions, compute
+	some random prices and for each split cash and inventory accordingly.
+	"""
+	capital = 1000
+	parameters = []
+
+	for p in np.linspace(0, 1, precision):
+		for _ in range(amount):
+			price = random.random() * capital
+			inventory = (capital * p) // price
+			cash = capital - inventory * price
+
+			assert price * inventory + cash == capital
+			parameters.append((inventory, cash, price))
+
+	return parameters
+
+
+def analize_proportion_actions_spread(time_horizon: int = 5, density: Callable[[int], tuple[list[float], list[float]]] = gaussian_densities):
+	"""
+	Using the proportion init parameters compute the distribution of the best moves
+	on the best path reward-wise and extract mean and variance.
+	"""
+	pass
+
+
+def avg_dict(dicts, keys):
+	return {k: sum(d[k] for d in dicts) / len(dicts) for k in keys}
+
+
+def var_dict(dicts, means, keys):
+	return {k: sum((d[k] - means[k]) ** 2 for d in dicts) / len(dicts) for k in keys}
+
 
 if __name__ == "__main__":
 	time_horizon = 3
