@@ -1,4 +1,4 @@
-from market_types import MarketTreeNode, Actions
+from market_types import MarketTreeNode, Action
 
 import matplotlib.pyplot as plt
 from typing import Callable
@@ -43,7 +43,7 @@ def path_to_leaf(root: MarketTreeNode, leaf: MarketTreeNode) -> list[MarketTreeN
 	return path
 
 
-def action_path(path: list[MarketTreeNode]) -> list[Actions]:
+def action_path(path: list[MarketTreeNode]) -> list[Action]:
 	actions = []
 	for depth in range(1, len(path)):
 		parent, node = path[depth - 1], path[depth]
@@ -96,7 +96,7 @@ def compute_action_distributions(graph: nx.DiGraph, path_edgelist: list[tuple[in
 	path_actions = [graph.get_edge_data(u, v)["action"] for (u, v) in path_edgelist]
 	return {
 		action: path_actions.count(action.value) / len(path_actions) 
-		for action in [Actions.BUY, Actions.STAY, Actions.SELL]
+		for action in ACTIONS
 	}
 
 
@@ -124,7 +124,7 @@ def draw_nx(graph: nx.DiGraph, title=""):
 
 	avg_action_distribution = {
 		action: sum(d[action] for d in action_distributions) / len(action_distributions)
-		for action in [Actions.BUY, Actions.STAY, Actions.SELL]
+		for action in ACTIONS
 	}
 
 	plt.title(f"{title if title is not None else ''}\nBest stategy action distribution: " + \
@@ -170,10 +170,9 @@ def draw_market_tree(tree: MarketTreeNode, deltas: list[Callable[[int], float]],
 
 def bar_plot(ax, data, errors=None, title=None, colors=None, total_width=0.8, single_width=1, legend=True, labels=None):
 	"""Draws a bar plot with multiple bars per data point."""
-	explanation = "I = inventory, C = cash, P = price\n(e.g. 'IC' means that only inventory and cash are non-zero)"
+	if title is not None:
+		ax.set_title(title)
 	
-	ax.set_title(((title + "\n") or "") + explanation)
-
 	if colors is None:
 		colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 

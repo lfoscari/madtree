@@ -2,11 +2,12 @@ from typing import Callable
 from enum import Enum
 
 
-class Actions(Enum):
+class Action(Enum):
 	BUY = 1
 	STAY = 0
 	SELL = -1
 
+ACTIONS = [Action.BUY, Action.STAY, Action.SELL]
 
 class MarketTreeNode:
 	def __init__(self, inventory: int, cash: float, price: float, depth: int = 0, reward: float = 0.0):
@@ -16,16 +17,16 @@ class MarketTreeNode:
 		self.depth = depth
 		self.reward = reward
 
-		self.children: dict[Actions, MarketTreeNode] = dict()
+		self.children: dict[Action, MarketTreeNode] = dict()
 
-	def can_perform(self, action: Actions, delta: Callable[[int], float]) -> bool:
+	def can_perform(self, action: Action, delta: Callable[[int], float]) -> bool:
 		"""Should be checked before performing an action"""
 		quantity = action.value
 		delta_action = delta(quantity)
 
-		preconditions = action == Actions.STAY \
-			or (action == Actions.BUY and self.price + delta_action <= self.cash) \
-			or (action == Actions.SELL and self.inventory > 0)
+		preconditions = action == Action.STAY \
+			or (action == Action.BUY and self.price + delta_action <= self.cash) \
+			or (action == Action.SELL and self.inventory > 0)
 
 		postconditions = self.inventory + quantity >= 0 \
 			and self.cash - quantity * (self.price + delta_action) >= 0 \
@@ -33,12 +34,12 @@ class MarketTreeNode:
 		
 		return preconditions and postconditions
 
-	def perform(self, action: Actions, delta: Callable[[int], float]) -> bool:
+	def perform(self, action: Action, delta: Callable[[int], float]) -> bool:
 		"""Execute an action on the tree and create the corresponding child"""
 		quantity = action.value
 
-		self.buy_delta = delta(Actions.BUY.value)
-		self.sell_delta = delta(Actions.SELL.value)
+		self.buy_delta = delta(Action.BUY.value)
+		self.sell_delta = delta(Action.SELL.value)
 		
 		if not self.can_perform(action, delta):
 			return False
@@ -66,7 +67,7 @@ class MarketTreeNode:
 			queue.extend(node.children.values())
 
 			delta = deltas[node.depth]
-			for action in [Actions.BUY, Actions.STAY, Actions.SELL]:
+			for action in ACTIONS:
 				if node.can_perform(action, delta) and action not in node.children:
 					print(action, node)
 					return False

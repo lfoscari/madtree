@@ -1,17 +1,13 @@
 from tree_generation import deltas_factory, generate_tree, gaussian_densities, alternating_densities, update_tree
 from tree_visualization import convert_to_nx, highest_reward_leaf, path_to_leaf, action_path, compute_action_distributions
-from market_types import Actions, MarketTreeNode
+from market_types import Action, ACTIONS, MarketTreeNode
 
-from typing import Callable
+from typing import Callable, Dict, List, Tuple, Any
 import numpy as np
 import random
 
-# # TODO: calcola i parametri così:
-# 	- estrai un prezzo
-# 	- estrai una porzione p in [0, 1]
-# 	- distribuisci un capitale iniziale fisso tra cash e inventario in base al prezzo alla proporzione p.
 
-def nonzero_initializations(amount = 1_000) -> dict(str, list(int)):
+def nonzero_initializations(amount = 1_000) -> Dict[str, List[Tuple[int, int, float]]]:
 	r = lambda: random.randint(1, 20)
 
 	I = [(r(), 0, 0) for _ in range(amount)]
@@ -35,73 +31,68 @@ def nonzero_initializations(amount = 1_000) -> dict(str, list(int)):
 	}
 
 
-def analize_nonzero_actions_spread(time_horizon: int = 5, density: Callable[[int], tuple[list[float], list[float]]] = gaussian_densities) -> dict(str, dict()):
-	"""
-	Using the non-zero init parameters compute the distribution of the best moves
-	on the best path reward-wise and extract mean and variance.
-	"""
-	deltas = deltas_factory(time_horizon, density)
-	init_arguments = initializations()
-	tree = MarketTreeNode(1, 1, 1)
-
-	for name, arguments in init_arguments.items():
-		arg_distr = []
-
-		for arg in arguments:
-			tree = update_tree(tree, time_horizon, deltas, *arg)
-			best_leaf = highest_reward_leaf(tree)
-			path = path_to_leaf(tree, best_leaf)
-			actions = action_path(path)
-
-			arg_distr.append({
-				action.name: actions.count(action) / len(actions) 
-				for action in [Actions.BUY, Actions.STAY, Actions.SELL]
-			})
-
-		arg_results_mean = avg_dict(arg_distr, [Actions.BUY.name, Actions.STAY.name, Actions.SELL.name])
-		arg_results_var = var_dict(arg_distr, arg_results_mean, [Actions.BUY.name, Actions.STAY.name, Actions.SELL.name])
-
-		init_arguments[name] = {
-			"mean": arg_results_mean,
-			"var": arg_results_var
-		}
-
-	return init_arguments
-
-def proportion_initializations(amount = 100, precision = 50) -> tuple((int, int, float)):
+def proportion_initializations(amount = 1_000, precision = 11) -> Dict[str, List[Tuple[int, int, float]]]:
 	"""
 	From a starting capital and across a grid of possible distributions, compute
 	some random prices and for each split cash and inventory accordingly.
 	"""
 	capital = 1000
-	parameters = []
+	parameters = {}
 
 	for p in np.linspace(0, 1, precision):
+		p_params = []
 		for _ in range(amount):
 			price = random.random() * capital
 			inventory = (capital * p) // price
 			cash = capital - inventory * price
 
 			assert price * inventory + cash == capital
-			parameters.append((inventory, cash, price))
+			p_params.append((inventory, cash, price))
+		parameters[f"{int(p * 100)}%"] = p_params
 
 	return parameters
 
 
-def analize_proportion_actions_spread(time_horizon: int = 5, density: Callable[[int], tuple[list[float], list[float]]] = gaussian_densities):
+def analize_actions_spread(arguments: Dict[str, List[Tuple[int, int, float]]],
+	time_horizon: int = 5, density: Callable[[int], tuple[list[float], list[float]]] = gaussian_densities):
 	"""
-	Using the proportion init parameters compute the distribution of the best moves
+	Using the non-zero init parameters compute the distribution of the best moves
 	on the best path reward-wise and extract mean and variance.
 	"""
-	pass
+	tree = MarketTreeNode(1, 1, 1)
+	results = {}
+
+	for name, args in arguments.items():
+		actions_count = []
+
+		for arg in args:
+			deltas = deltas_factory(time_horizon, density)
+			tree = update_tree(tree, time_horizon, deltas, *arg)
+			path = path_to_leaf(tree, highest_reward_leaf(tree))
+			actions = action_path(path)
+
+			actions_count.append({
+				action: actions.count(action) / len(actions) 
+				for action in ACTIONS
+			})
+
+		results_mean = avg_dict(actions_count, ACTIONS)
+		results_str = std_dict(actions_count, results_mean, ACTIONS)
+
+		results[name] = {
+			"mean": {a.name: r for a, r in results_mean.items()},
+			"std": {a.name: r for a, r in results_str.items()}
+		}
+
+	return results
 
 
 def avg_dict(dicts, keys):
 	return {k: sum(d[k] for d in dicts) / len(dicts) for k in keys}
 
 
-def var_dict(dicts, means, keys):
-	return {k: sum((d[k] - means[k]) ** 2 for d in dicts) / len(dicts) for k in keys}
+def std_dict(dicts, means, keys):
+	return {k: np.sqrt(sum((d[k] - means[k]) ** 2 for d in dicts)) / len(dicts) for k in keys}
 
 
 if __name__ == "__main__":

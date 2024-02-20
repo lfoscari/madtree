@@ -1,4 +1,4 @@
-from market_types import Actions, MarketTreeNode
+from market_types import Action, ACTIONS, MarketTreeNode
 
 from typing import Callable
 import random, math
@@ -67,12 +67,12 @@ def deltas_factory(time_horizon: int, densities: Callable[[int], tuple[list[floa
 	def delta(alpha: float, beta: float):
 		"""Given a market density build the trading cost function"""
 		def inner(quantity: int):
-			match Actions(quantity):
-				case Actions.BUY:
+			match Action(quantity):
+				case Action.BUY:
 					price_impact = math.sqrt(2 * quantity / alpha)
-				case Actions.SELL:
+				case Action.SELL:
 					price_impact = -math.sqrt(-2 * quantity / beta)
-				case Actions.STAY:
+				case Action.STAY:
 					price_impact = 0
 			return price_impact * 2 / 3
 		return inner
@@ -83,7 +83,7 @@ def deltas_factory(time_horizon: int, densities: Callable[[int], tuple[list[floa
 
 def update_tree(root: MarketTreeNode, time_horizon: int, deltas: list[Callable[[int], float]], inventory: int, cash: float, price: float) -> MarketTreeNode:
 	"""
-		Given a tree and initialization parameters, update the tree to reflect the parameters.
+		Given a tree and initialization parameters with deltas, update the tree to reflect the parameters.
 	"""
 	root.inventory, root.cash, root.price = inventory, cash, price
 	queue = [root]
@@ -93,7 +93,7 @@ def update_tree(root: MarketTreeNode, time_horizon: int, deltas: list[Callable[[
 		if node.depth > time_horizon - 1: continue
 
 		delta = deltas[node.depth]
-		for action in [Actions.BUY, Actions.STAY, Actions.SELL]:
+		for action in ACTIONS:
 			if not node.can_perform(action, delta):
 				if action in node.children: del node.children[action]
 				continue
@@ -104,6 +104,8 @@ def update_tree(root: MarketTreeNode, time_horizon: int, deltas: list[Callable[[
 				node.children[action].cash = node.cash - quantity * (node.price + delta(quantity))
 				node.children[action].price = node.price + delta(quantity)
 				node.children[action].reward = node.reward + node.inventory * delta(quantity)
+				node.children[action].buy_delta = delta(Action.BUY.value)
+				node.children[action].sell_delta = delta(Action.SELL.value)
 			else:
 				node.perform(action, delta)
 
@@ -124,7 +126,7 @@ def update_tree(root: MarketTreeNode, time_horizon: int, deltas: list[Callable[[
 # 		node = queue.pop(0)
 # 		if node.depth > time_horizon - 1: continue
 
-# 		for action in [Actions.BUY, Actions.STAY, Actions.SELL]:
+# 		for action in ACTIONS:
 # 			if node.perform(action, deltas[node.depth]):
 # 				queue.append(node.children[action])
 
@@ -140,7 +142,7 @@ def generate_tree(time_horizon: int, deltas: list[Callable[[int], float]], inven
 		node = queue.pop(0)
 		if node.depth >= time_horizon: break
 
-		for action in [Actions.BUY, Actions.STAY, Actions.SELL]:
+		for action in ACTIONS:
 			if node.perform(action, deltas[node.depth]):
 				queue.append(node.children[action])
 

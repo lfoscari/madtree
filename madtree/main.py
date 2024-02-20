@@ -1,27 +1,27 @@
+from tree_analysis import analize_actions_spread, nonzero_initializations, proportion_initializations
 from tree_visualization import draw_market_tree, bar_plot
-from tree_analysis import analize_actions_spread
-from market_types import Actions, MarketTreeNode
+from market_types import Action, ACTIONS, MarketTreeNode
 from tree_generation import *
 
 from multiprocessing import Pool
 import matplotlib.pyplot as plt
+from functools import partial
 from datetime import datetime
-import time
-import json
+import time, os, json
 
-def analyze_density(density, time_horizon = 10):
+def analyze_density(density, arguments, destination, time_horizon = 10):
 	start = time.time()
 	fig, ax = plt.subplots()
-	res = analize_nonzero_actions_spread(time_horizon, density)
 
-	res_mean_t = {a.name: [v["mean"][a.name] for k, v in res.items()] for a in [Actions.BUY, Actions.STAY, Actions.SELL]}
-	res_var_t = {a.name: [v["var"][a.name] for k, v in res.items()] for a in [Actions.BUY, Actions.STAY, Actions.SELL]}
+	results = analize_actions_spread(arguments, time_horizon, density)
+	results_mean_t = {a.name: [v["mean"][a.name] for k, v in results.items()] for a in ACTIONS}
+	results_std_t = {a.name: [v["std"][a.name] for k, v in results.items()] for a in ACTIONS}
 	
-	bar_plot(ax, res_mean_t, res_var_t, density.__name__, total_width = .8, single_width = 1, labels = res.keys())
+	bar_plot(ax, results_mean_t, results_std_t, density.__name__, total_width = .8, single_width = 1, labels = results.keys())
 
-	plt.savefig(f"results/{density.__name__}.pdf")
-	print(density.__name__, round(time.time() - start), "s")
-	return { density.__name__: res }
+	plt.savefig(f"{destination}/{density.__name__}_{time_horizon}.pdf")
+	print(f"({destination.rsplit('/', 1)[1]})", density.__name__, f"{round(time.time() - start)}s")
+	return { density.__name__: results }
 
 if __name__ == "__main__":
 	# density = gaussian_densities
@@ -31,7 +31,18 @@ if __name__ == "__main__":
 
 	densities = [symmetrical_densities, lipschitz_densities, gaussian_densities, alternating_densities, constant_densities, uniform_densities]
 
-	with open(f"results-{datetime.today().strftime('%Y-%m-%d-%H:%M:%S')}.txt", "w") as f:
-		with Pool(len(densities)) as pool:
-			results = pool.map(analyze_density, densities)
-			f.writelines(json.dumps({k: v for d in results for k, v in d.items()}, indent = 4))
+	if not os.path.exists("results/non-zero"): os.makedirs("results/non-zero")
+	if not os.path.exists("results/proportional"): os.makedirs("results/proportional")
+
+	nonzero = open(f"results/non-zero/{datetime.today().strftime('%Y-%m-%d-%H:%M:%S')}_{time_horizon}.json", "w")
+	proportional = open(f"results/proportional/{datetime.today().strftime('%Y-%m-%d-%H:%M:%S')}_{time_horizon}.json", "w")
+
+	with Pool(len(densities) * 2) as pool:
+		analyze_nonzero = partial(analyze_density, destination = "results/non-zero", arguments = nonzero_initializations())
+		results_nonzero = pool.map_async(analyze_nonzero, densities)
+
+		analyze_proportional = partial(analyze_density, destination = "results/proportional", arguments = proportion_initializations())
+		results_proportional = pool.map_async(analyze_proportional, densities)
+
+		nonzero.writelines(json.dumps({k: v for d in results_nonzero.get() for k, v in d.items()}, indent = 4))
+		proportional.writelines(json.dumps({k: v for d in results_proportional.get() for k, v in d.items()}, indent = 4))
