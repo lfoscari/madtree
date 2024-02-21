@@ -7,7 +7,7 @@ import numpy as np
 import random
 
 
-def nonzero_initializations(amount = 1_000) -> Dict[str, List[Tuple[int, int, float]]]:
+def nonzero_initializations(amount = 10_000) -> Dict[str, List[Tuple[int, int, float]]]:
 	r = lambda: random.randint(1, 20)
 
 	I = [(r(), 0, 0) for _ in range(amount)]
@@ -46,7 +46,7 @@ def proportion_initializations(amount = 1_000, precision = 11) -> Dict[str, List
 			inventory = (capital * p) // price
 			cash = capital - inventory * price
 
-			assert price * inventory + cash == capital
+			assert (price * inventory + cash) == capital
 			p_params.append((inventory, cash, price))
 		parameters[f"{int(p * 100)}%"] = p_params
 

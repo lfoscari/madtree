@@ -29,20 +29,41 @@ if __name__ == "__main__":
 	# tree = generate_tree(time_horizon, deltas, 10, 100, 50)
 	# draw_market_tree(tree, deltas, density.__name__.replace("_", " ").capitalize())
 
-	densities = [symmetrical_densities, lipschitz_densities, gaussian_densities, alternating_densities, constant_densities, uniform_densities]
+	time_horizon = 10
+	destination = "results"
 
-	if not os.path.exists("results/non-zero"): os.makedirs("results/non-zero")
-	if not os.path.exists("results/proportional"): os.makedirs("results/proportional")
+	densities = [
+		symmetrical_densities,
+		lipschitz_densities,
+		gaussian_densities,
+		alternating_densities,
+		constant_densities,
+		uniform_densities
+	]
 
-	nonzero = open(f"results/non-zero/{datetime.today().strftime('%Y-%m-%d-%H:%M:%S')}_{time_horizon}.json", "w")
-	proportional = open(f"results/proportional/{datetime.today().strftime('%Y-%m-%d-%H:%M:%S')}_{time_horizon}.json", "w")
+	if not os.path.exists(f"{destination}/non-zero"): os.makedirs(f"{destination}/non-zero")
+	nonzero = open(f"{destination}/non-zero/{datetime.today().strftime('%Y-%m-%d-%H:%M:%S')}_{time_horizon}.json", "w")
+
+	if not os.path.exists(f"{destination}/proportional"): os.makedirs(f"{destination}/proportional")
+	proportional = open(f"{destination}/proportional/{datetime.today().strftime('%Y-%m-%d-%H:%M:%S')}_{time_horizon}.json", "w")
 
 	with Pool(len(densities) * 2) as pool:
-		analyze_nonzero = partial(analyze_density, destination = "results/non-zero", arguments = nonzero_initializations())
+		analyze_nonzero = partial(analyze_density,
+			destination = f"{destination}/non-zero",
+			arguments = nonzero_initializations(),
+			time_horizon = time_horizon
+		)
 		results_nonzero = pool.map_async(analyze_nonzero, densities)
 
-		analyze_proportional = partial(analyze_density, destination = "results/proportional", arguments = proportion_initializations())
+		analyze_proportional = partial(analyze_density,
+			destination = f"{destination}/proportional",
+			arguments = proportion_initializations(),
+			time_horizon = time_horizon
+		)
 		results_proportional = pool.map_async(analyze_proportional, densities)
 
 		nonzero.writelines(json.dumps({k: v for d in results_nonzero.get() for k, v in d.items()}, indent = 4))
 		proportional.writelines(json.dumps({k: v for d in results_proportional.get() for k, v in d.items()}, indent = 4))
+
+	nonzero.close()
+	proportional.close()
