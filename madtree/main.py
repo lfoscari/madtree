@@ -3,13 +3,13 @@ from tree_visualization import draw_market_tree, bar_plot
 from market_types import Action, ACTIONS, MarketTreeNode
 from tree_generation import *
 
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 import matplotlib.pyplot as plt
 from functools import partial
 from datetime import datetime
 import time, os, json
 
-def analyze_density(density, arguments, destination, time_horizon = 10):
+def analyze_density(density, arguments, destination, time_horizon):
 	start = time.time()
 	fig, ax = plt.subplots()
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
 	# tree = generate_tree(time_horizon, deltas, 10, 100, 50)
 	# draw_market_tree(tree, deltas, density.__name__.replace("_", " ").capitalize())
 
-	time_horizon = 10
+	time_horizon = 15
 	destination = "results"
 
 	densities = [
@@ -47,7 +47,7 @@ if __name__ == "__main__":
 	if not os.path.exists(f"{destination}/proportional"): os.makedirs(f"{destination}/proportional")
 	proportional = open(f"{destination}/proportional/{datetime.today().strftime('%Y-%m-%d-%H:%M:%S')}_{time_horizon}.json", "w")
 
-	with Pool(len(densities) * 2) as pool:
+	with Pool(cpu_count() - 1) as pool:
 		analyze_nonzero = partial(analyze_density,
 			destination = f"{destination}/non-zero",
 			arguments = nonzero_initializations(),
