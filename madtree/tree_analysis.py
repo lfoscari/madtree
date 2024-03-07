@@ -1,18 +1,19 @@
-from tree_generation import deltas_factory, generate_tree, gaussian_densities, alternating_densities, update_tree
-from tree_visualization import convert_to_nx, highest_reward_leaf, path_to_leaf, action_path, compute_action_distributions
-from market_types import Action, ACTIONS, MarketTreeNode
+from tree_generation import deltas_factory, generate_tree, gaussian_densities, update_tree
+from tree_visualization import highest_reward_leaf, path_to_leaf, action_path
+from market_types import ACTIONS, MarketTreeNode
 
-from typing import Callable, Dict, List, Tuple, Any
 import numpy as np
 import random
 
 
-def nonzero_initializations(amount = 10_000) -> Dict[str, List[Tuple[int, int, float]]]:
+def nonzero_initializations(amount = 10_000):
 	r = lambda: random.randint(1, 20)
 
-	I = [(r(), 0, 0) for _ in range(amount)]
+	# Commented cases correspont to trivial optimal strategy (usually only STAY)
+
+	# I = [(r(), 0, 0) for _ in range(amount)]
 	C = [(0, r(), 0) for _ in range(amount)]
-	P = [(0, 0, r()) for _ in range(amount)]
+	# P = [(0, 0, r()) for _ in range(amount)]
 
 	IC = [(r(), r(), 0) for _ in range(amount)]
 	IP = [(r(), 0, r()) for _ in range(amount)]
@@ -21,9 +22,9 @@ def nonzero_initializations(amount = 10_000) -> Dict[str, List[Tuple[int, int, f
 	ICP = [(r(), r(), r()) for _ in range(amount)]
 
 	return {
-		"I": I,
+		# "I": I,
 		"C": C,
-		"P": P,
+		# "P": P,
 		"IC": IC,
 		"IP": IP,
 		"CP": CP,
@@ -31,7 +32,7 @@ def nonzero_initializations(amount = 10_000) -> Dict[str, List[Tuple[int, int, f
 	}
 
 
-def proportion_initializations(amount = 1_000, precision = 11) -> Dict[str, List[Tuple[int, int, float]]]:
+def proportion_initializations(amount = 5_000, precision = 11):
 	"""
 	From a starting capital and across a grid of possible distributions, compute
 	some random prices and for each split cash and inventory accordingly.
@@ -53,8 +54,7 @@ def proportion_initializations(amount = 1_000, precision = 11) -> Dict[str, List
 	return parameters
 
 
-def analize_actions_spread(arguments: Dict[str, List[Tuple[int, int, float]]],
-	time_horizon: int = 5, density: Callable[[int], tuple[list[float], list[float]]] = gaussian_densities):
+def analize_actions_spread(arguments, time_horizon, density):
 	"""
 	Using the non-zero init parameters compute the distribution of the best moves
 	on the best path reward-wise and extract mean and variance.
@@ -77,11 +77,11 @@ def analize_actions_spread(arguments: Dict[str, List[Tuple[int, int, float]]],
 			})
 
 		results_mean = avg_dict(actions_count, ACTIONS)
-		results_str = std_dict(actions_count, results_mean, ACTIONS)
+		results_std = std_dict(actions_count, results_mean, ACTIONS)
 
 		results[name] = {
 			"mean": {a.name: r for a, r in results_mean.items()},
-			"std": {a.name: r for a, r in results_str.items()}
+			"std":  {a.name: r for a, r in results_std.items()}
 		}
 
 	return results

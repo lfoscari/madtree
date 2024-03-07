@@ -4,7 +4,7 @@ from typing import Callable
 import random, math
 
 
-def gaussian_densities(time_horizon: int, mu = 0.2, std = 0.1) -> tuple[list[float], list[float]]:
+def gaussian_densities(time_horizon, mu = 0.2, std = 0.1):
 	"""Generate uniform alphas and betas from the given interval"""
 	distr = lambda: max(random.normalvariate(mu, std), 0.05)
 	alphas = [distr() for _ in range(time_horizon)]
@@ -12,7 +12,7 @@ def gaussian_densities(time_horizon: int, mu = 0.2, std = 0.1) -> tuple[list[flo
 	return alphas, betas
 
 
-def uniform_densities(time_horizon: int, interval = (0.05, 0.5)) -> tuple[list[float], list[float]]:
+def uniform_densities(time_horizon, interval = (0.05, 0.5)):
 	"""Generate uniform alphas and betas from the given interval"""
 	distr = lambda: random.uniform(*interval)
 	alphas = [distr() for _ in range(time_horizon)]
@@ -20,7 +20,7 @@ def uniform_densities(time_horizon: int, interval = (0.05, 0.5)) -> tuple[list[f
 	return alphas, betas
 
 
-def constant_densities(time_horizon: int, interval = (0.05, 0.5)) -> tuple[list[float], list[float]]:
+def constant_densities(time_horizon, interval = (0.05, 0.5)):
 	"""Generate constant alphas and betas with two values from the given interval"""
 	distr = lambda: random.uniform(*interval)
 	alpha, beta = distr(), distr()
@@ -29,13 +29,13 @@ def constant_densities(time_horizon: int, interval = (0.05, 0.5)) -> tuple[list[
 	return alphas, betas
 
 
-def symmetrical_densities(time_horizon: int) -> tuple[list[float], list[float]]:
+def symmetrical_densities(time_horizon):
 	"""Generate gaussian alphas and betas which are symmetrical"""
 	alphas, _ = gaussian_densities(time_horizon)
 	return alphas, alphas
 
 
-def alternating_densities(time_horizon: int) -> tuple[list[float], list[float]]:
+def alternating_densities(time_horizon):
 	"""Generate gaussian alphas and betas, but avoid having a more convenient side two or more times in a row"""
 	alphas, betas = gaussian_densities(time_horizon)
 
@@ -47,7 +47,7 @@ def alternating_densities(time_horizon: int) -> tuple[list[float], list[float]]:
 	return alphas, betas
 
 
-def lipschitz_densities(time_horizon: int, start: float = 0.3, constant: float = 0.1) -> tuple[list[float], list[float]]:
+def lipschitz_densities(time_horizon, start = 0.3, constant = 0.1):
 	"""Generate lipschitz alphas and betas"""
 
 	def lipschitz_gen(x: float):
@@ -61,12 +61,12 @@ def lipschitz_densities(time_horizon: int, start: float = 0.3, constant: float =
 	return alphas, betas
 
 
-def deltas_factory(time_horizon: int, densities: Callable[[int], tuple[list[float], list[float]]]) -> list[Callable[[int], float]]:
+def deltas_factory(time_horizon, densities):
 	"""Returns the functions defining the market density, for now it is just gaussian"""
 
-	def delta(alpha: float, beta: float):
+	def delta(alpha, beta):
 		"""Given a market density build the trading cost function"""
-		def inner(quantity: int):
+		def inner(quantity):
 			match Action(quantity):
 				case Action.BUY:
 					price_impact = math.sqrt(2 * quantity / alpha)
@@ -80,7 +80,7 @@ def deltas_factory(time_horizon: int, densities: Callable[[int], tuple[list[floa
 	alphas, betas = densities(time_horizon)
 	return [delta(a, b) for a, b in zip(alphas, betas)]
 
-def flatten(tree: MarketTreeNode):
+def flatten(tree):
 	"""Convert a tree into a list and remove children links"""
 	result = []
 	queue = [tree]
@@ -96,10 +96,9 @@ def flatten(tree: MarketTreeNode):
 # Cache used to store leaves to build bigger trees without runtime allocation
 unused_leaves = []
 
-def update_tree(root: MarketTreeNode, time_horizon: int, deltas: list[Callable[[int], float]], inventory: int, cash: float, price: float) -> MarketTreeNode:
-	"""
-		Given a tree and initialization parameters with deltas, update the tree to reflect the parameters.
-	"""
+def update_tree(root, time_horizon, deltas, inventory, cash, price):
+	"""Given a tree and initialization parameters with deltas, update the tree to reflect the parameters"""
+
 	root.inventory, root.cash, root.price = inventory, cash, price
 	root.reward = cash + price * inventory
 	queue = [root]
@@ -113,8 +112,7 @@ def update_tree(root: MarketTreeNode, time_horizon: int, deltas: list[Callable[[
 			if node.can_perform(action, delta):
 				if action not in node.children:
 					# Old tree did not contain the node, use one from the cache
-					node.children[action] = unused_leaves.pop() \
-						if len(unused_leaves) > 0 else MarketTreeNode()
+					node.children[action] = unused_leaves.pop() if len(unused_leaves) > 0 else MarketTreeNode()
 				node.children[action].inherit(node, action, delta)
 				queue.append(node.children[action])
 			elif action in node.children:
@@ -144,7 +142,7 @@ def update_tree(root: MarketTreeNode, time_horizon: int, deltas: list[Callable[[
 # 	return root
 
 
-def generate_tree(time_horizon: int, deltas: list[Callable[[int], float]], inventory = 0, cash = 1, price = 0) -> MarketTreeNode:
+def generate_tree(time_horizon, deltas, inventory = 0, cash = 1, price = 0) :
 	"""Build the market tree up to the given depth and using the given market densities"""
 	root = MarketTreeNode(inventory, cash, price)
 	queue = [root]
@@ -160,7 +158,7 @@ def generate_tree(time_horizon: int, deltas: list[Callable[[int], float]], inven
 	return root
 
 if __name__ == "__main__":
-	from tree_generation import deltas_factory, gaussian_densities, lipschitz_densities
+	from tree_generation import deltas_factory, gaussian_densities
 	from tree_visualization import draw_market_tree
 
 	time_horizon = 3
@@ -171,7 +169,7 @@ if __name__ == "__main__":
 	print(first_update.check_tree(deltas, time_horizon))
 	draw_market_tree(first_update, deltas)
 
-	second_update = update_tree(complete, time_horizon, deltas, 1000, 0, 100)
+	second_update = update_tree(complete, time_horizon, deltas, 10, 0, 100)
 	print(second_update.check_tree(deltas, time_horizon))
 	draw_market_tree(second_update, deltas)
 
