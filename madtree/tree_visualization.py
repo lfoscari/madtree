@@ -1,4 +1,4 @@
-from market_types import MarketTreeNode, Action
+from market_types import MarketTreeNode, Action, ACTIONS
 
 import matplotlib.pyplot as plt
 from typing import Callable
@@ -25,10 +25,10 @@ def highest_reward_leaf(tree: MarketTreeNode) -> list[MarketTreeNode]:
 
 
 def path_to_leaf(root: MarketTreeNode, leaf: MarketTreeNode) -> list[MarketTreeNode]:
+	# A bit of backtracking programming, because it's fun
 	def rec_path(path: list[MarketTreeNode], leaf: MarketTreeNode) -> bool:
 		last_node = path[-1]
-		if last_node == leaf:
-			return True
+		if last_node == leaf: return True
 
 		for child in last_node.children.values():
 			path.append(child)
@@ -51,8 +51,9 @@ def action_path(path: list[MarketTreeNode]) -> list[Action]:
 		actions.append(action)
 	return actions
 
+
 def convert_to_nx(tree: MarketTreeNode, deltas: list[Callable[[int], float]]):
-	"""Represent the tree in NetworkX DiGraph"""
+	"""Convert the tree to NetworkX DiGraph format"""
 	graph = nx.DiGraph()
 	queue = [(None, tree)]
 
@@ -85,9 +86,12 @@ def convert_to_nx(tree: MarketTreeNode, deltas: list[Callable[[int], float]]):
 
 def nx_highest_reward_paths(graph: nx.DiGraph):
 	"""Find the path from the root to the leaves with the highest reward"""
+	root = [node for node in graph if graph.in_degree(node) == 0][0]
 	leaves = [node for node in graph if graph.out_degree(node) == 0]
-	max_reward = max(leaves, key=lambda node: graph.nodes[node]["reward"])["reward"]
-	best_leaves = [leaf for leaf in leaves if graph.nodes[node]["reward"] == max_reward]
+	
+	max_reward_node = max(leaves, key=lambda node: graph.nodes[node]["reward"])
+	max_reward = graph.nodes[max_reward_node]["reward"]
+	best_leaves = [leaf for leaf in leaves if graph.nodes[leaf]["reward"] == max_reward]
 
 	return chain(*(nx.all_simple_paths(graph, root, leaf) for leaf in best_leaves))
 
@@ -105,11 +109,11 @@ def draw_nx(graph: nx.DiGraph, title=""):
 	position = nx.nx_agraph.graphviz_layout(graph, prog="dot")
 
 	edge_actions = nx.get_edge_attributes(graph, "action")
-	edge_deltas = nx.get_edge_attributes(graph, "delta")
+	# edge_deltas = nx.get_edge_attributes(graph, "delta")
 	nx.draw_networkx_edges(graph, position, ax=ax)
 	nx.draw_networkx_edge_labels(graph, position, edge_labels=edge_actions)
 
-	node_data = nx.get_node_attributes(graph, "data")
+	# node_data = nx.get_node_attributes(graph, "data")
 	node_rewards = nx.get_node_attributes(graph, "reward")
 	nodes = nx.draw_networkx_nodes(graph, position, ax=ax, cmap=plt.cm.Blues, node_color=list(node_rewards.values()))
 
@@ -130,8 +134,10 @@ def draw_nx(graph: nx.DiGraph, title=""):
 	plt.title(f"{title if title is not None else ''}\nBest stategy action distribution: " + \
 		', '.join(f'{a.name} {int(p * 100)}%' for (a, p) in avg_action_distribution.items()))
 
-	annot = ax.annotate("", xy=(0,0), xytext=(20, 20), textcoords="offset points", 
-		bbox=dict(fc="w"), arrowprops=dict(arrowstyle="->"))
+	# Handle pop-up annotations on the graph
+
+	annot = ax.annotate("", xy=(20, 20), xytext=(.95, .95), textcoords="axes fraction", 
+		ha="right", va="top", multialignment="left", family="monospace")
 
 	idx_to_node = {}
 	for idx, node in enumerate(graph.nodes):
@@ -141,7 +147,8 @@ def draw_nx(graph: nx.DiGraph, title=""):
 		idx = ind["ind"][0]
 		node = idx_to_node[idx]
 		annot.xy = position[node]
-		text = "\n".join(f"{k}: {v:.3f}" for k, v in graph.nodes[node].items())
+		pad = len(max(graph.nodes[node].keys(), key=len))
+		text = "\n".join(f"{k.rjust(pad)}: {v:.3f}" for k, v in graph.nodes[node].items())
 		annot.set_text(text)
 
 	def hover(event):

@@ -1,7 +1,6 @@
 from typing import Callable
 from enum import Enum
 
-
 class Action(Enum):
 	BUY = 1
 	STAY = 0
@@ -10,7 +9,7 @@ class Action(Enum):
 ACTIONS = [Action.BUY, Action.STAY, Action.SELL]
 
 class MarketTreeNode:
-	def __init__(self, inventory: int, cash: float, price: float, depth: int = 0, reward: float = 0.0):
+	def __init__(self, inventory: int = 0, cash: float = 0., price: float = 0., depth: int = 0, reward: float = 0.):
 		self.inventory = inventory
 		self.cash = cash
 		self.price = price
@@ -20,7 +19,7 @@ class MarketTreeNode:
 		self.children: dict[Action, MarketTreeNode] = dict()
 
 	def can_perform(self, action: Action, delta: Callable[[int], float]) -> bool:
-		"""Should be checked before performing an action"""
+		"""Check that an action can be performed on a node without breaking constraints"""
 		quantity = action.value
 		delta_action = delta(quantity)
 
@@ -34,6 +33,15 @@ class MarketTreeNode:
 		
 		return preconditions and postconditions
 
+	def inherit(self, parent, quantity: int, delta: Callable[[int], float]):
+		"""Update the current node to reflect the evolution of the parent node on the given action and delta"""
+		price_change = delta(quantity)
+		self.inventory = parent.inventory + quantity
+		self.cash = parent.cash - quantity * (parent.price + price_change)
+		self.price = parent.price + price_change
+		self.depth = parent.depth + 1
+		self.reward = parent.reward + parent.inventory * price_change
+
 	def perform(self, action: Action, delta: Callable[[int], float]) -> bool:
 		"""Execute an action on the tree and create the corresponding child"""
 		quantity = action.value
@@ -44,14 +52,8 @@ class MarketTreeNode:
 		if not self.can_perform(action, delta):
 			return False
 
-		delta_action = delta(quantity)
-		self.children[action] = MarketTreeNode(
-			self.inventory + quantity,
-			self.cash - quantity * (self.price + delta_action),
-			self.price + delta_action,
-			self.depth + 1,
-			self.reward + self.inventory * delta_action,
-		)
+		self.children[action] = MarketTreeNode()
+		self.children[action].inherit(self, quantity, delta)
 
 		return True
 
@@ -64,8 +66,9 @@ class MarketTreeNode:
 		
 		while len(queue) > 0:
 			node = queue.pop(0)
+			if node.depth >= time_horizon: continue
+			
 			queue.extend(node.children.values())
-
 			delta = deltas[node.depth]
 			for action in ACTIONS:
 				if node.can_perform(action, delta) and action not in node.children:

@@ -90,7 +90,7 @@ def update_tree(root: MarketTreeNode, time_horizon: int, deltas: list[Callable[[
 
 	while len(queue) > 0:
 		node = queue.pop(0)
-		if node.depth > time_horizon - 1: continue
+		if node.depth >= time_horizon: continue
 
 		delta = deltas[node.depth]
 		for action in ACTIONS:
@@ -99,13 +99,7 @@ def update_tree(root: MarketTreeNode, time_horizon: int, deltas: list[Callable[[
 				continue
 
 			if action in node.children:
-				quantity = action.value
-				node.children[action].inventory = node.inventory + quantity
-				node.children[action].cash = node.cash - quantity * (node.price + delta(quantity))
-				node.children[action].price = node.price + delta(quantity)
-				node.children[action].reward = node.reward + node.inventory * delta(quantity)
-				node.children[action].buy_delta = delta(Action.BUY.value)
-				node.children[action].sell_delta = delta(Action.SELL.value)
+				node.children[action].inherit(node, action.value, delta)
 			else:
 				node.perform(action, delta)
 
@@ -124,7 +118,7 @@ def update_tree(root: MarketTreeNode, time_horizon: int, deltas: list[Callable[[
 	
 # 	while len(queue) > 0:
 # 		node = queue.pop(0)
-# 		if node.depth > time_horizon - 1: continue
+# 		if node.depth >= time_horizon: continue
 
 # 		for action in ACTIONS:
 # 			if node.perform(action, deltas[node.depth]):
