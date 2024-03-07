@@ -86,6 +86,7 @@ def update_tree(root: MarketTreeNode, time_horizon: int, deltas: list[Callable[[
 		Given a tree and initialization parameters with deltas, update the tree to reflect the parameters.
 	"""
 	root.inventory, root.cash, root.price = inventory, cash, price
+	root.reward = cash + price * inventory
 	queue = [root]
 
 	while len(queue) > 0:
