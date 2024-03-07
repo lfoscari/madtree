@@ -80,6 +80,21 @@ def deltas_factory(time_horizon: int, densities: Callable[[int], tuple[list[floa
 	alphas, betas = densities(time_horizon)
 	return [delta(a, b) for a, b in zip(alphas, betas)]
 
+def flatten(tree: MarketTreeNode):
+	"""Convert a tree into a list and remove children links"""
+	result = []
+	queue = [tree]
+
+	while len(queue) > 0:
+		node = queue.pop(0)
+		queue.extend(node.children.values())
+		result.append(node)
+		node.children = dict()
+
+	return result
+
+# Cache used to store leaves to build bigger trees without runtime allocation
+unused_leaves = []
 
 def update_tree(root: MarketTreeNode, time_horizon: int, deltas: list[Callable[[int], float]], inventory: int, cash: float, price: float) -> MarketTreeNode:
 	"""
@@ -95,16 +110,17 @@ def update_tree(root: MarketTreeNode, time_horizon: int, deltas: list[Callable[[
 
 		delta = deltas[node.depth]
 		for action in ACTIONS:
-			if not node.can_perform(action, delta):
-				if action in node.children: del node.children[action]
-				continue
-
-			if action in node.children:
-				node.children[action].inherit(node, action.value, delta)
-			else:
-				node.perform(action, delta)
-
-			queue.append(node.children[action])
+			if node.can_perform(action, delta):
+				if action not in node.children:
+					# Old tree did not contain the node, use one from the cache
+					node.children[action] = unused_leaves.pop() \
+						if len(unused_leaves) > 0 else MarketTreeNode()
+				node.children[action].inherit(node, action, delta)
+				queue.append(node.children[action])
+			elif action in node.children:
+				# Remove illegal node and store it in cache alongside its children
+				unused_leaves.extend(flatten(node.children[action]))
+				del node.children[action]
 
 	return root
 

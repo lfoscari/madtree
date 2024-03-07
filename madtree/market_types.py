@@ -34,31 +34,30 @@ class MarketTreeNode:
 		
 		return preconditions and postconditions
 
-	def inherit(self, parent, quantity: int, delta: Callable[[int], float]):
+	def inherit(self, parent, action: int, delta: Callable[[int], float]):
 		"""Update the current node to reflect the evolution of the parent node on the given action and delta"""
+		quantity = action.value
 		price_change = delta(quantity)
+
 		self.inventory = parent.inventory + quantity
 		self.cash = parent.cash - quantity * (parent.price + price_change)
 		self.price = parent.price + price_change
 		self.depth = parent.depth + 1
 		self.reward = parent.reward + parent.inventory * price_change
 
+		parent.buy_delta = delta(Action.BUY.value)
+		parent.sell_delta = delta(Action.SELL.value)
+
 		assert math.isclose(self.reward, self.cash + self.inventory * self.price), \
 			("rewards mismatch", self.reward, self.cash + self.inventory * self.price)
 
 	def perform(self, action: Action, delta: Callable[[int], float]) -> bool:
 		"""Execute an action on the tree and create the corresponding child"""
-		quantity = action.value
-
-		self.buy_delta = delta(Action.BUY.value)
-		self.sell_delta = delta(Action.SELL.value)
-		
 		if not self.can_perform(action, delta):
 			return False
 
 		self.children[action] = MarketTreeNode()
-		self.children[action].inherit(self, quantity, delta)
-
+		self.children[action].inherit(self, action, delta)
 		return True
 
 	def check_tree(self, deltas, time_horizon):
