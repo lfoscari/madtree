@@ -2,6 +2,7 @@ from tree_generation import deltas_factory, generate_tree, gaussian_densities, u
 from tree_visualization import highest_reward_leaf, path_to_leaf, action_path
 from market_types import ACTIONS, MarketTreeNode
 
+from tqdm.auto import tqdm
 import numpy as np
 import random
 
@@ -54,35 +55,40 @@ def proportion_initializations(amount = 5_000, precision = 11):
 	return parameters
 
 
-def analize_actions_spread(arguments, time_horizon, density):
+def analize_actions_spread(density, arguments, time_horizon, pid, description):
 	"""
-	Using the non-zero init parameters compute the distribution of the best moves
+	Using the init parameters compute the distribution of the best moves
 	on the best path reward-wise and extract mean and variance.
 	"""
 	tree = MarketTreeNode(1, 1, 1)
 	results = {}
 
-	for name, args in arguments.items():
-		actions_count = []
+	total_arguments = sum(len(args) for args in arguments.values())
+	with tqdm(total = total_arguments, desc = description, position = pid) as progress:
+		
+		for name, args in arguments.items():
+			actions_count = []
 
-		for arg in args:
-			deltas = deltas_factory(time_horizon, density)
-			tree = update_tree(tree, time_horizon, deltas, *arg)
-			path = path_to_leaf(tree, highest_reward_leaf(tree))
-			actions = action_path(path)
+			for arg in args:
+				deltas = deltas_factory(time_horizon, density)
+				tree = update_tree(tree, time_horizon, deltas, *arg)
+				path = path_to_leaf(tree, highest_reward_leaf(tree))
+				actions = action_path(path)
 
-			actions_count.append({
-				action: actions.count(action) / len(actions) 
-				for action in ACTIONS
-			})
+				actions_count.append({
+					action: actions.count(action) / len(actions) 
+					for action in ACTIONS
+				})
 
-		results_mean = avg_dict(actions_count, ACTIONS)
-		results_std = std_dict(actions_count, results_mean, ACTIONS)
+				progress.update(1)
 
-		results[name] = {
-			"mean": {a.name: r for a, r in results_mean.items()},
-			"std":  {a.name: r for a, r in results_std.items()}
-		}
+			results_mean = avg_dict(actions_count, ACTIONS)
+			results_std = std_dict(actions_count, results_mean, ACTIONS)
+
+			results[name] = {
+				"mean": {a.name: r for a, r in results_mean.items()},
+				"std":  {a.name: r for a, r in results_std.items()}
+			}
 
 	return results
 

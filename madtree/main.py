@@ -3,29 +3,30 @@ from tree_visualization import draw_market_tree, bar_plot
 from market_types import Action, ACTIONS, MarketTreeNode
 from tree_generation import *
 
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, RLock, cpu_count
 import matplotlib.pyplot as plt
 from functools import partial
 from datetime import datetime
 import time, os, json
+from tqdm import tqdm
 
-def analyze_density(density, arguments, destination, time_horizon):
+def analyze_density(density, arguments, destination, time_horizon, pid, description):
 	start = time.time()
 	fig, ax = plt.subplots()
 
-	results = analize_actions_spread(arguments, time_horizon, density)
+	results = analize_actions_spread(density, arguments, time_horizon, pid, description)
 	results_mean_t = {a.name: [r["mean"][a.name] for r in results.values()] for a in ACTIONS}
 	results_std_t  = {a.name: [r["std"][a.name]  for r in results.values()] for a in ACTIONS}
-	
+
 	bar_plot(ax, results_mean_t, results_std_t, density.__name__, total_width = .8, single_width = 1, labels = results.keys())
 
 	plt.savefig(f"{destination}/{density.__name__}_{time_horizon}.pdf")
-	print(f"({destination.rsplit('/', 1)[1]})", density.__name__, f"{round(time.time() - start)}s")
+	# print(f"({destination.rsplit('/', 1)[1]})", density.__name__, f"{round(time.time() - start)}s")
 	return { density.__name__: results }
 
 if __name__ == "__main__":
-	time_horizon = 3
-	
+	time_horizon = 10
+
 	# density = gaussian_densities
 	# deltas = deltas_factory(time_horizon, density)
 	# tree = generate_tree(time_horizon, deltas, 10, 100, 50)
@@ -50,23 +51,25 @@ if __name__ == "__main__":
 	if not os.path.exists(f"{destination}/proportional"): os.makedirs(f"{destination}/proportional")
 	proportional = open(f"{destination}/proportional/{now}_{time_horizon}.json", "w")
 
-	with Pool(cpu_count() - 1) as pool:
-		analyze_nonzero = partial(analyze_density,
-			destination = f"{destination}/non-zero",
-			arguments = nonzero_initializations(),
-			time_horizon = time_horizon
-		)
-		results_nonzero = pool.map_async(analyze_nonzero, densities)
+	non_zero_arguments = nonzero_initializations()
+	proportional_arguments = proportion_initializations()
+		
+	with Pool(len(densities) * 2, initargs=(RLock(), ), initializer = tqdm.set_lock) as pool:
 
-		analyze_proportional = partial(analyze_density,
-			destination = f"{destination}/proportional",
-			arguments = proportion_initializations(),
-			time_horizon = time_horizon
-		)
-		results_proportional = pool.map_async(analyze_proportional, densities)
+		results_nonzero = [
+			pool.apply_async(
+				analyze_density,
+				(density, non_zero_arguments, f"{destination}/non-zero", time_horizon, index, f"non-zero/{density.__name__}"))
+			for index, density in enumerate(densities)]
 
-		nonzero.writelines(json.dumps({k: v for d in results_nonzero.get() for k, v in d.items()}, indent = 4))
-		proportional.writelines(json.dumps({k: v for d in results_proportional.get() for k, v in d.items()}, indent = 4))
+		results_proportional = [
+			pool.apply_async(
+				analyze_density,
+				(density, proportional_arguments, f"{destination}/proportional", time_horizon, index, f"proportional/{density.__name__}"))
+			for index, density in enumerate(densities, start=len(densities))]
+
+		nonzero.writelines(json.dumps({k: v for res in results_nonzero for k, v in res.get().items()}, indent = 4))
+		proportional.writelines(json.dumps({k: v for res in results_proportional for k, v in res.get().items()}, indent = 4))
 
 	nonzero.close()
 	proportional.close()
