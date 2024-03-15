@@ -6,6 +6,7 @@ in pkgs.mkShell {
       python-pkgs.networkx
       python-pkgs.pygraphviz
       python-pkgs.matplotlib
+      python-pkgs.tqdm
     ]))
   ];
 }

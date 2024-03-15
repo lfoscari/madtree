@@ -11,14 +11,14 @@ import time, os, json
 from tqdm import tqdm
 
 def analyze_density(density, arguments, destination, time_horizon, pid, description):
-	start = time.time()
-	fig, ax = plt.subplots()
+	# start = time.time()
+	_, ax = plt.subplots()
 
 	results = analize_actions_spread(density, arguments, time_horizon, pid, description)
 	results_mean_t = {a.name: [r["mean"][a.name] for r in results.values()] for a in ACTIONS}
 	results_std_t  = {a.name: [r["std"][a.name]  for r in results.values()] for a in ACTIONS}
 
-	bar_plot(ax, results_mean_t, results_std_t, density.__name__, total_width = .8, single_width = 1, labels = results.keys())
+	bar_plot(ax, results_mean_t, results_std_t, f"{description} (T: {time_horizon})", total_width = .8, single_width = 1, labels = results.keys())
 
 	plt.savefig(f"{destination}/{density.__name__}_{time_horizon}.pdf")
 	# print(f"({destination.rsplit('/', 1)[1]})", density.__name__, f"{round(time.time() - start)}s")
@@ -54,17 +54,15 @@ if __name__ == "__main__":
 	non_zero_arguments = nonzero_initializations()
 	proportional_arguments = proportion_initializations()
 		
-	with Pool(len(densities) * 2, initargs=(RLock(), ), initializer = tqdm.set_lock) as pool:
+	with Pool(cpu_count() - 1, initargs=(RLock(), ), initializer = tqdm.set_lock) as pool:
 
 		results_nonzero = [
-			pool.apply_async(
-				analyze_density,
+			pool.apply_async(analyze_density,
 				(density, non_zero_arguments, f"{destination}/non-zero", time_horizon, index, f"non-zero/{density.__name__}"))
 			for index, density in enumerate(densities)]
 
 		results_proportional = [
-			pool.apply_async(
-				analyze_density,
+			pool.apply_async(analyze_density,
 				(density, proportional_arguments, f"{destination}/proportional", time_horizon, index, f"proportional/{density.__name__}"))
 			for index, density in enumerate(densities, start=len(densities))]
 
