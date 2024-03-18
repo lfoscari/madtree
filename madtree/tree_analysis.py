@@ -44,7 +44,7 @@ def proportion_initializations(amount = 5_000, precision = 11):
 	for p in np.linspace(0, 1, precision):
 		p_params = []
 		for _ in range(amount):
-			price = random.random() * capital
+			price = random.random() * capital / 2
 			inventory = (capital * p) // price
 			cash = capital - inventory * price
 
@@ -61,7 +61,8 @@ def analize_actions_spread(density, arguments, time_horizon, pid, description):
 	on the best path reward-wise and extract mean and variance.
 	"""
 	tree = MarketTreeNode(1, 1, 1)
-	results = {}
+	frequencies = {}
+	order = [{action: 0 for action in ACTIONS} for _ in range(time_horizon)]
 
 	total_arguments = sum(len(args) for args in arguments.values())
 	with tqdm(total = total_arguments, desc = description, position = pid) as progress:
@@ -75,6 +76,9 @@ def analize_actions_spread(density, arguments, time_horizon, pid, description):
 				path = path_to_leaf(tree, highest_reward_leaf(tree))
 				actions = action_path(path)
 
+				for index, action in enumerate(actions):
+					order[index][action] += 1
+
 				actions_count.append({
 					action: actions.count(action) / len(actions) 
 					for action in ACTIONS
@@ -82,15 +86,20 @@ def analize_actions_spread(density, arguments, time_horizon, pid, description):
 
 				progress.update(1)
 
-			results_mean = avg_dict(actions_count, ACTIONS)
-			results_std = std_dict(actions_count, results_mean, ACTIONS)
+			frequencies_mean = avg_dict(actions_count, ACTIONS)
+			frequencies_std = std_dict(actions_count, frequencies_mean, ACTIONS)
 
-			results[name] = {
-				"mean": {a.name: r for a, r in results_mean.items()},
-				"std":  {a.name: r for a, r in results_std.items()}
+			frequencies[name] = {
+				"mean": {a.name: r for a, r in frequencies_mean.items()},
+				"std":  {a.name: r for a, r in frequencies_std.items()}
 			}
 
-	return results
+	# Normalize count over total arguments
+	for index in range(time_horizon):
+		order[index] = {action.value: count / total_arguments  \
+				  for action, count in order[index].items()}
+
+	return frequencies, order
 
 
 def avg_dict(dicts, keys):

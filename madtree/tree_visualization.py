@@ -175,7 +175,7 @@ def draw_market_tree(tree: MarketTreeNode, deltas: list[Callable[[int], float]],
 	draw_nx(graph, title)
 
 
-def bar_plot(ax, data, errors=None, title=None, colors=None, total_width=0.8, single_width=1, legend=True, labels=None):
+def bar_plot(ax, data, errors=None, title=None, colors=None, total_width=0.8, single_width=1, labels=None):
 	"""Draws a bar plot with multiple bars per data point."""
 	if title is not None:
 		ax.set_title(title)
@@ -196,8 +196,30 @@ def bar_plot(ax, data, errors=None, title=None, colors=None, total_width=0.8, si
 		bars.append(bar[0])
 		
 
-	if legend:
-		ax.legend(bars, data.keys())
+	ax.legend(bars, data.keys())
 
 	if labels is not None:
 		plt.xticks(range(len(labels)), labels)
+
+def stacked_bar_plot(ax, data, title=None, labels=None):
+	if title is not None:
+		ax.set_title(title)
+
+	time_horizon = len(data)
+	bars = []
+
+	rounds = range(time_horizon)
+	actions_count = []
+
+	for action in ACTIONS:
+		actions_count.append([data[i][action.value] for i in rounds])
+	
+	# plot bars in stack manner
+	acc = [0 for _ in range(time_horizon)]
+	for action_count in actions_count:
+		bar = ax.bar(rounds, action_count, bottom=acc)
+		acc = [a + b for (a, b) in zip(acc, action_count)]
+		bars.append(bar[0])
+
+	ax.legend(bars, [Action(value).name for value in data[0].keys()])
+	plt.xticks(range(time_horizon))
